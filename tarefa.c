@@ -55,8 +55,8 @@ int main()
     adc_gpio_init(VRX_PIN); 
 
     uint pwm_wrap = 4096;  
-    uint pwm_slice = pwm_init_gpio(led_BLUE, pwm_wrap);
-    uint pwm_slice = pwm_init_gpio(led_GREEN, pwm_wrap);
+    uint pwm_slice_blue = pwm_init_gpio(led_BLUE, pwm_wrap);
+    uint pwm_slice_green = pwm_init_gpio(led_GREEN, pwm_wrap);
     
     uint32_t last_print_time = 0; 
 
