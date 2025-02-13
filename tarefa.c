@@ -50,16 +50,15 @@ int main()
 {
     stdio_init_all();
 
-    adc_init(); 
+    adc_init();
 
-    adc_gpio_init(VRX_PIN); 
+    adc_gpio_init(VRX_PIN);
 
-    uint pwm_wrap = 4096;  
+    uint pwm_wrap = 4096;
     uint pwm_slice_red = pwm_init_gpio(led_RED, pwm_wrap);
     uint pwm_slice_blue = pwm_init_gpio(led_BLUE, pwm_wrap);
-    
-    uint32_t last_print_time = 0; 
 
+    uint32_t last_print_time = 0;
 
     // Para o display
     // I2C Initialisation. Using it at 400Khz.
@@ -76,30 +75,32 @@ int main()
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
 
-    while (true) {
-        adc_select_input(0);  
-        uint16_t vrx_value = adc_read(); 
+    while (true)
+    {
+        adc_select_input(0);
+        int16_t vrx_value = adc_read();
 
         // ser mais intenso nos extremos
         vrx_value = vrx_value - 2048;
-        if (vrx_value < 0)
-        {
-            vrx_value = vrx_value * -1;
-        }
+        vrx_value = abs(vrx_value); // Valor absoluto para criar simetria
         vrx_value = vrx_value * 2;
-        
-        pwm_set_gpio_level(led_RED, vrx_value); 
+        // Limitar o valor máximo para evitar overflow
+        if (vrx_value > 4095)
+        {
+            vrx_value = 4095;
+        }
+        pwm_set_gpio_level(led_RED, vrx_value);
 
-        float duty_cycle = (vrx_value / 4095.0) * 100;  
+        float duty_cycle = (vrx_value / 4095.0) * 100;
 
-        
-        uint32_t current_time = to_ms_since_boot(get_absolute_time());  
-        if (current_time - last_print_time >= 1000) {  
-            printf("VRX: %u\n", vrx_value); 
-            printf("Duty Cycle LED: %.2f%%\n", duty_cycle); 
-            last_print_time = current_time;  
+        uint32_t current_time = to_ms_since_boot(get_absolute_time());
+        if (current_time - last_print_time >= 1000)
+        {
+            printf("VRX: %u\n", vrx_value);
+            printf("Duty Cycle LED: %.2f%%\n", duty_cycle);
+            last_print_time = current_time;
         }
 
-        sleep_ms(100);  
+        sleep_ms(100);
     }
 }
