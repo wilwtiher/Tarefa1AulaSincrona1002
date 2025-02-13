@@ -24,7 +24,8 @@
 #define led_GREEN 11 // Red=13, Blue=12, Green=11
 #define botao_pinA 5 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
 #define botao_pinB 6 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
-#define VRX_PIN 26   // Pino do Joystick X
+#define VRY_PIN 26   // Pino do Joystick Y
+#define VRX_PIN 27   // Pino do Joystick X
 
 // Variáveis globais
 static volatile uint32_t last_time = 0; // Armazena o tempo do último evento (em microssegundos)
@@ -53,7 +54,7 @@ int main()
     adc_init();
 
     adc_gpio_init(VRX_PIN);
-
+    adc_gpio_init(VRY_PIN);
     uint pwm_wrap = 4096;
     uint pwm_slice_red = pwm_init_gpio(led_RED, pwm_wrap);
     uint pwm_slice_blue = pwm_init_gpio(led_BLUE, pwm_wrap);
@@ -77,27 +78,44 @@ int main()
 
     while (true)
     {
+        // Para o led VERMELHO
         adc_select_input(0);
-        int16_t vrx_value = adc_read();
+        int16_t vrx_value0 = adc_read();
 
         // ser mais intenso nos extremos
-        vrx_value = vrx_value - 2048;
-        vrx_value = abs(vrx_value); // Valor absoluto para criar simetria
-        vrx_value = vrx_value * 2;
+        vrx_value0 = vrx_value0 - 2048;
+        vrx_value0 = abs(vrx_value0); // Valor absoluto para criar simetria
+        vrx_value0 = vrx_value0 * 2;
         // Limitar o valor máximo para evitar overflow
-        if (vrx_value > 4095)
+        if (vrx_value0 > 4095)
         {
-            vrx_value = 4095;
+            vrx_value0 = 4095;
         }
-        pwm_set_gpio_level(led_RED, vrx_value);
+        pwm_set_gpio_level(led_RED, vrx_value0);
 
-        float duty_cycle = (vrx_value / 4095.0) * 100;
+        // para o led AZUL
+        adc_select_input(1);
+        int16_t vrx_value1 = adc_read();
+
+        // ser mais intenso nos extremos
+        vrx_value1 = vrx_value1 - 2048;
+        vrx_value1 = abs(vrx_value1); // Valor absoluto para criar simetria
+        vrx_value1 = vrx_value1 * 2;
+        // Limitar o valor máximo para evitar overflow
+        if (vrx_value1 > 4095)
+        {
+            vrx_value1 = 4095;
+        }
+        pwm_set_gpio_level(led_BLUE, vrx_value1);
+
+        float duty_cycle = (vrx_value1 / 4095.0) * 100;
 
         uint32_t current_time = to_ms_since_boot(get_absolute_time());
         if (current_time - last_print_time >= 1000)
         {
-            printf("VRX: %u\n", vrx_value);
-            printf("Duty Cycle LED: %.2f%%\n", duty_cycle);
+            printf("VRX0: %u\n", vrx_value0);
+            printf("VRX0: %u\n", vrx_value1);
+            printf("Duty Cycle LED0: %.2f%%\n", duty_cycle);
             last_print_time = current_time;
         }
 
