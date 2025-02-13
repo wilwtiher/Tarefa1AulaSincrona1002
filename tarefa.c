@@ -55,8 +55,8 @@ int main()
     adc_gpio_init(VRX_PIN); 
 
     uint pwm_wrap = 4096;  
+    uint pwm_slice_red = pwm_init_gpio(led_RED, pwm_wrap);
     uint pwm_slice_blue = pwm_init_gpio(led_BLUE, pwm_wrap);
-    uint pwm_slice_green = pwm_init_gpio(led_GREEN, pwm_wrap);
     
     uint32_t last_print_time = 0; 
 
@@ -80,6 +80,14 @@ int main()
         adc_select_input(0);  
         uint16_t vrx_value = adc_read(); 
 
+        // ser mais intenso nos extremos
+        vrx_value = vrx_value - 2048;
+        if (vrx_value < 0)
+        {
+            vrx_value = vrx_value * -1;
+        }
+        vrx_value = vrx_value * 2;
+        
         pwm_set_gpio_level(led_RED, vrx_value); 
 
         float duty_cycle = (vrx_value / 4095.0) * 100;  
