@@ -33,9 +33,8 @@ static volatile uint32_t last_time = 0; // Armazena o tempo do último evento (e
 static volatile int contador = 0;
 bool cor = true;
 bool display = true;
-bool Vermelho = false;
+bool LEDS = true;
 bool Verde = false;
-bool Azul = false;
 int16_t displayX = 0;
 int16_t displayY = 0;
 // Função de interrupção com debouncing
@@ -51,6 +50,12 @@ void gpio_irq_handler(uint gpio, uint32_t events)
             gpio_put(led_GREEN, !Verde);
             Verde = !Verde;
             display = !display;
+        }
+        if (gpio == botao_pinA)
+        {
+            LEDS = !LEDS;
+            pwm_set_gpio_level(led_RED, 0);
+            pwm_set_gpio_level(led_BLUE, 0);
         }
         last_time = current_time; // Atualiza o tempo do último evento
     }
@@ -110,7 +115,7 @@ int main()
     // Limpa o display. O display inicia com um retangulo
     ssd1306_fill(&ssd, false);
     ssd1306_rect(&ssd, 3, 3, 122, 58, display, !display); // Desenha um retângulo
-    ssd1306_send_data(&ssd);                      // Atualiza o display
+    ssd1306_send_data(&ssd);                              // Atualiza o display
 
     while (true)
     {
@@ -119,52 +124,47 @@ int main()
         adc_select_input(0);
         int16_t vry_value = adc_read();
         displayX = (vrx_value / 34);
-        displayY = (vry_value / 64);
-        if(displayX < 0){
-            displayX = 0;
-        }
-        displayY = displayY - 64;
+        displayY = (vry_value / 73);
+        displayY = displayY - 56;
         displayY = abs(displayY);
-        displayY = displayY - 8;
-        if(displayY < 0){
-            displayY = 0;
-        }
         ssd1306_fill(&ssd, false);
         ssd1306_rect(&ssd, displayY, displayX, 8, 8, 1, 1); // Desenha um quadrado
-        ssd1306_rect(&ssd, 3, 3, 122, 58, display, !display); // Desenha um retângulo
-        ssd1306_send_data(&ssd);                      // Atualiza o display
+        ssd1306_rect(&ssd, 3, 3, 122, 58, display, 0);      // Desenha um retângulo
+        ssd1306_send_data(&ssd);                            // Atualiza o display
+        if (LEDS)
+        {
+            // ser mais intenso nos extremos
+            vrx_value = vrx_value - 2048;
+            vrx_value = abs(vrx_value); // Valor absoluto para criar simetria
+            vrx_value = vrx_value * 2;
+            // Limitar o valor máximo para evitar overflow
+            if (vrx_value > 4095)
+            {
+                vrx_value = 4095;
+            }
+            // Valor minimo para o led acender
+            if (vrx_value < 299)
+            {
+                vrx_value = 0;
+            }
+            pwm_set_gpio_level(led_RED, vrx_value);
 
-        // ser mais intenso nos extremos
-        vrx_value = vrx_value - 2048;
-        vrx_value = abs(vrx_value); // Valor absoluto para criar simetria
-        vrx_value = vrx_value * 2;
-        // Limitar o valor máximo para evitar overflow
-        if (vrx_value > 4095)
-        {
-            vrx_value = 4095;
+            // ser mais intenso nos extremos
+            vry_value = vry_value - 2048;
+            vry_value = abs(vry_value); // Valor absoluto para criar simetria
+            vry_value = vry_value * 2;
+            // Limitar o valor máximo para evitar overflow
+            if (vry_value > 4095)
+            {
+                vry_value = 4095;
+            }
+            // Valor minimo para o led acender
+            if (vry_value < 299)
+            {
+                vry_value = 0;
+            }
+            pwm_set_gpio_level(led_BLUE, vry_value);
         }
-        // Valor minimo para o led acender
-        if (vrx_value < 299)
-        {
-            vrx_value = 0;
-        }
-        pwm_set_gpio_level(led_RED, vrx_value);
-
-        // ser mais intenso nos extremos
-        vry_value = vry_value - 2048;
-        vry_value = abs(vry_value); // Valor absoluto para criar simetria
-        vry_value = vry_value * 2;
-        // Limitar o valor máximo para evitar overflow
-        if (vry_value > 4095)
-        {
-            vry_value = 4095;
-        }
-        // Valor minimo para o led acender
-        if (vry_value < 299)
-        {
-            vry_value = 0;
-        }
-        pwm_set_gpio_level(led_BLUE, vry_value);
 
         float duty_cycle0 = (vrx_value / 4095.0) * 100;
         float duty_cycle1 = (vry_value / 4095.0) * 100;
