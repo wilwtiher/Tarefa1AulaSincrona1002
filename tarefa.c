@@ -23,8 +23,7 @@
 #define led_BLUE 12  // Red=13, Blue=12, Green=11
 #define led_GREEN 11 // Red=13, Blue=12, Green=11
 #define botao_pinA 5 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
-#define botao_pinB 6 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
-#define joybutton 22 // Botoa do joystick
+#define joybutton 22 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
 #define VRY_PIN 26   // Pino do Joystick Y
 #define VRX_PIN 27   // Pino do Joystick X
 
@@ -112,10 +111,9 @@ int main()
     ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Inicializa o display
     ssd1306_config(&ssd);                                         // Configura o display
     ssd1306_send_data(&ssd);                                      // Envia os dados para o display
-    // Limpa o display. O display inicia com um retangulo
+    // Limpa o display.
     ssd1306_fill(&ssd, false);
-    ssd1306_rect(&ssd, 3, 3, 122, 58, display, !display); // Desenha um retângulo
-    ssd1306_send_data(&ssd);                              // Atualiza o display
+    ssd1306_send_data(&ssd); // Atualiza o display
 
     while (true)
     {
@@ -164,19 +162,6 @@ int main()
                 vry_value = 0;
             }
             pwm_set_gpio_level(led_BLUE, vry_value);
-        }
-
-        float duty_cycle0 = (vrx_value / 4095.0) * 100;
-        float duty_cycle1 = (vry_value / 4095.0) * 100;
-
-        uint32_t current_time = to_ms_since_boot(get_absolute_time());
-        if (current_time - last_print_time >= 1000)
-        {
-            printf("VRX: %u\n", vrx_value);
-            printf("VRY: %u\n", vry_value);
-            printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle0);
-            printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle1);
-            last_print_time = current_time;
         }
         sleep_ms(100);
     }
