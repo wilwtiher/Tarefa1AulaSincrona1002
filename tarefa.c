@@ -29,7 +29,6 @@
 
 // Variáveis globais
 static volatile uint32_t last_time = 0; // Armazena o tempo do último evento (em microssegundos)
-static volatile int contador = 0;
 bool cor = true;
 bool display = true;
 bool LEDS = true;
