@@ -32,23 +32,25 @@
 static volatile uint32_t last_time = 0; // Armazena o tempo do último evento (em microssegundos)
 static volatile int contador = 0;
 bool cor = true;
+bool display = true;
 bool Vermelho = false;
 bool Verde = false;
 bool Azul = false;
-
+int16_t displayX = 0;
+int16_t displayY = 0;
 // Função de interrupção com debouncing
 void gpio_irq_handler(uint gpio, uint32_t events)
 {
-    if(gpio == joybutton){
-        gpio_put(led_GREEN, gpio_get(led_GREEN));
-    }
     // Obtém o tempo atual em microssegundos
     uint32_t current_time = to_us_since_boot(get_absolute_time());
     // Verifica se passou tempo suficiente desde o último evento
     if (current_time - last_time > 200000) // 200 ms de debouncing
     {
-        if(gpio == joybutton){
-            gpio_put(led_GREEN, gpio_get(led_GREEN));
+        if (gpio == joybutton)
+        {
+            gpio_put(led_GREEN, !Verde);
+            Verde = !Verde;
+            display = !display;
         }
         last_time = current_time; // Atualiza o tempo do último evento
     }
@@ -81,7 +83,9 @@ int main()
     gpio_pull_up(botao_pinA);          // Habilita o pull-up interno
     // Configuração da interrupção com callback
     gpio_set_irq_enabled_with_callback(botao_pinA, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
-    
+
+    gpio_init(led_GREEN);              // Inicializa o pino do LED
+    gpio_set_dir(led_GREEN, GPIO_OUT); // Configura o pino como saída
     adc_init();
 
     adc_gpio_init(VRY_PIN);
@@ -105,14 +109,29 @@ int main()
     ssd1306_send_data(&ssd);                                      // Envia os dados para o display
     // Limpa o display. O display inicia com um retangulo
     ssd1306_fill(&ssd, false);
-    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+    ssd1306_rect(&ssd, 3, 3, 122, 58, display, !display); // Desenha um retângulo
     ssd1306_send_data(&ssd);                      // Atualiza o display
 
     while (true)
     {
-        // Para o led VERMELHO
         adc_select_input(1);
         int16_t vrx_value = adc_read();
+        adc_select_input(0);
+        int16_t vry_value = adc_read();
+        displayX = (vrx_value / 32) - 4;
+        displayY = (vry_value / 64) + 4;
+        if(displayX < 0){
+            displayX = 0;
+        }
+        if(displayY < 0){
+            displayY = 0;
+        }
+        displayY = displayY - 64;
+        displayY = abs(displayY);
+        ssd1306_fill(&ssd, false);
+        ssd1306_rect(&ssd, displayY, displayX, 8, 8, 1, 1); // Desenha um quadrado
+        ssd1306_rect(&ssd, 3, 3, 122, 58, display, !display); // Desenha um retângulo
+        ssd1306_send_data(&ssd);                      // Atualiza o display
 
         // ser mais intenso nos extremos
         vrx_value = vrx_value - 2048;
@@ -124,15 +143,11 @@ int main()
             vrx_value = 4095;
         }
         // Valor minimo para o led acender
-        if (vrx_value < 119)
+        if (vrx_value < 299)
         {
             vrx_value = 0;
         }
         pwm_set_gpio_level(led_RED, vrx_value);
-
-        // para o led AZUL
-        adc_select_input(0);
-        int16_t vry_value = adc_read();
 
         // ser mais intenso nos extremos
         vry_value = vry_value - 2048;
@@ -144,7 +159,7 @@ int main()
             vry_value = 4095;
         }
         // Valor minimo para o led acender
-        if (vry_value < 119)
+        if (vry_value < 299)
         {
             vry_value = 0;
         }
@@ -162,7 +177,6 @@ int main()
             printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle1);
             last_print_time = current_time;
         }
-
         sleep_ms(100);
     }
 }
