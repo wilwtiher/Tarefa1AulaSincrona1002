@@ -14,10 +14,6 @@
 #define I2C_SCL 15
 #define endereco 0x3C
 
-// para o DISPLAY
-#define IS_RGBW false
-#define NUM_PIXELS 25
-
 // Pinos
 #define led_RED 13   // Red=13, Blue=12, Green=11
 #define led_BLUE 12  // Red=13, Blue=12, Green=11
