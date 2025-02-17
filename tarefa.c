@@ -118,16 +118,17 @@ int main()
         int16_t vrx_value = adc_read();
         adc_select_input(0);
         int16_t vry_value = adc_read();
-        displayX = (vrx_value / 32) - 4;
-        displayY = (vry_value / 64) + 4;
+        displayX = (vrx_value / 34);
+        displayY = (vry_value / 64);
         if(displayX < 0){
             displayX = 0;
         }
+        displayY = displayY - 64;
+        displayY = abs(displayY);
+        displayY = displayY - 8;
         if(displayY < 0){
             displayY = 0;
         }
-        displayY = displayY - 64;
-        displayY = abs(displayY);
         ssd1306_fill(&ssd, false);
         ssd1306_rect(&ssd, displayY, displayX, 8, 8, 1, 1); // Desenha um quadrado
         ssd1306_rect(&ssd, 3, 3, 122, 58, display, !display); // Desenha um retângulo
