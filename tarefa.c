@@ -53,8 +53,8 @@ int main()
 
     adc_init();
 
-    adc_gpio_init(VRX_PIN);
     adc_gpio_init(VRY_PIN);
+    adc_gpio_init(VRX_PIN);
     uint pwm_wrap = 4096;
     uint pwm_slice_red = pwm_init_gpio(led_RED, pwm_wrap);
     uint pwm_slice_blue = pwm_init_gpio(led_BLUE, pwm_wrap);
@@ -91,6 +91,10 @@ int main()
         {
             vrx_value0 = 4095;
         }
+        // Valor minimo para o led acender
+        if (vrx_value0 < 119){
+            vrx_value0 = 0;
+        }
         pwm_set_gpio_level(led_RED, vrx_value0);
 
         // para o led AZUL
@@ -106,16 +110,22 @@ int main()
         {
             vrx_value1 = 4095;
         }
+        // Valor minimo para o led acender
+        if (vrx_value1 < 119){
+            vrx_value1 = 0;
+        }
         pwm_set_gpio_level(led_BLUE, vrx_value1);
 
-        float duty_cycle = (vrx_value1 / 4095.0) * 100;
+        float duty_cycle0 = (vrx_value0 / 4095.0) * 100;
+        float duty_cycle1 = (vrx_value1 / 4095.0) * 100;
 
         uint32_t current_time = to_ms_since_boot(get_absolute_time());
         if (current_time - last_print_time >= 1000)
         {
             printf("VRX0: %u\n", vrx_value0);
             printf("VRX0: %u\n", vrx_value1);
-            printf("Duty Cycle LED0: %.2f%%\n", duty_cycle);
+            printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle0);
+            printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle1);
             last_print_time = current_time;
         }
 
