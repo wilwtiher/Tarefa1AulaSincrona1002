@@ -24,6 +24,7 @@
 #define led_GREEN 11 // Red=13, Blue=12, Green=11
 #define botao_pinA 5 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
 #define botao_pinB 6 // Botão A = 5, Botão B = 6 , BotãoJoy = 22
+#define joybutton 22 // Botoa do joystick
 #define VRY_PIN 26   // Pino do Joystick Y
 #define VRX_PIN 27   // Pino do Joystick X
 
@@ -34,6 +35,24 @@ bool cor = true;
 bool Vermelho = false;
 bool Verde = false;
 bool Azul = false;
+
+// Função de interrupção com debouncing
+void gpio_irq_handler(uint gpio, uint32_t events)
+{
+    if(gpio == joybutton){
+        gpio_put(led_GREEN, gpio_get(led_GREEN));
+    }
+    // Obtém o tempo atual em microssegundos
+    uint32_t current_time = to_us_since_boot(get_absolute_time());
+    // Verifica se passou tempo suficiente desde o último evento
+    if (current_time - last_time > 200000) // 200 ms de debouncing
+    {
+        if(gpio == joybutton){
+            gpio_put(led_GREEN, gpio_get(led_GREEN));
+        }
+        last_time = current_time; // Atualiza o tempo do último evento
+    }
+}
 
 // Funcao para iniciar pino PWM
 uint pwm_init_gpio(uint gpio, uint wrap)
@@ -51,6 +70,18 @@ int main()
 {
     stdio_init_all();
 
+    gpio_init(joybutton);
+    gpio_set_dir(joybutton, GPIO_IN); // Configura o pino como entrada
+    gpio_pull_up(joybutton);          // Habilita o pull-up interno
+    // Configuração da interrupção com callback
+    gpio_set_irq_enabled_with_callback(joybutton, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
+
+    gpio_init(botao_pinA);
+    gpio_set_dir(botao_pinA, GPIO_IN); // Configura o pino como entrada
+    gpio_pull_up(botao_pinA);          // Habilita o pull-up interno
+    // Configuração da interrupção com callback
+    gpio_set_irq_enabled_with_callback(botao_pinA, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
+    
     adc_init();
 
     adc_gpio_init(VRY_PIN);
@@ -72,58 +103,61 @@ int main()
     ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Inicializa o display
     ssd1306_config(&ssd);                                         // Configura o display
     ssd1306_send_data(&ssd);                                      // Envia os dados para o display
-    // Limpa o display. O display inicia com todos os pixels apagados.
+    // Limpa o display. O display inicia com um retangulo
     ssd1306_fill(&ssd, false);
-    ssd1306_send_data(&ssd);
+    ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
+    ssd1306_send_data(&ssd);                      // Atualiza o display
 
     while (true)
     {
         // Para o led VERMELHO
-        adc_select_input(0);
-        int16_t vrx_value0 = adc_read();
+        adc_select_input(1);
+        int16_t vrx_value = adc_read();
 
         // ser mais intenso nos extremos
-        vrx_value0 = vrx_value0 - 2048;
-        vrx_value0 = abs(vrx_value0); // Valor absoluto para criar simetria
-        vrx_value0 = vrx_value0 * 2;
+        vrx_value = vrx_value - 2048;
+        vrx_value = abs(vrx_value); // Valor absoluto para criar simetria
+        vrx_value = vrx_value * 2;
         // Limitar o valor máximo para evitar overflow
-        if (vrx_value0 > 4095)
+        if (vrx_value > 4095)
         {
-            vrx_value0 = 4095;
+            vrx_value = 4095;
         }
         // Valor minimo para o led acender
-        if (vrx_value0 < 119){
-            vrx_value0 = 0;
+        if (vrx_value < 119)
+        {
+            vrx_value = 0;
         }
-        pwm_set_gpio_level(led_RED, vrx_value0);
+        pwm_set_gpio_level(led_RED, vrx_value);
 
         // para o led AZUL
-        adc_select_input(1);
-        int16_t vrx_value1 = adc_read();
+        adc_select_input(0);
+        int16_t vry_value = adc_read();
 
         // ser mais intenso nos extremos
-        vrx_value1 = vrx_value1 - 2048;
-        vrx_value1 = abs(vrx_value1); // Valor absoluto para criar simetria
-        vrx_value1 = vrx_value1 * 2;
+        vry_value = vry_value - 2048;
+        vry_value = abs(vry_value); // Valor absoluto para criar simetria
+        vry_value = vry_value * 2;
         // Limitar o valor máximo para evitar overflow
-        if (vrx_value1 > 4095)
+        if (vry_value > 4095)
         {
-            vrx_value1 = 4095;
+            vry_value = 4095;
         }
         // Valor minimo para o led acender
-        if (vrx_value1 < 119){
-            vrx_value1 = 0;
+        if (vry_value < 119)
+        {
+            vry_value = 0;
         }
-        pwm_set_gpio_level(led_BLUE, vrx_value1);
+        pwm_set_gpio_level(led_BLUE, vry_value);
 
-        float duty_cycle0 = (vrx_value0 / 4095.0) * 100;
-        float duty_cycle1 = (vrx_value1 / 4095.0) * 100;
+        float duty_cycle0 = (vrx_value / 4095.0) * 100;
+        float duty_cycle1 = (vry_value / 4095.0) * 100;
 
         uint32_t current_time = to_ms_since_boot(get_absolute_time());
         if (current_time - last_print_time >= 1000)
         {
-            printf("VRX0: %u\n", vrx_value0);
-            printf("VRX0: %u\n", vrx_value1);
+            printf("VRX: %u\n", vrx_value);
+            printf("VRY: %u\n", vry_value);
             printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle0);
             printf("Duty Cycle LED VERMELHO: %.2f%%\n", duty_cycle1);
             last_print_time = current_time;
